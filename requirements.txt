@@ -1,0 +1,9 @@
+flask>=3.0.0
+requests>=2.28.0
+python-docx>=1.1.0
+opencc-python-reimplemented>=0.1.7
+pypinyin>=0.52.0
+pycantonese>=3.5.0
+gunicorn>=21.2.0
+pykakasi>=2.2.1
+korean-romanizer>=0.3.0

@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎵 歌詞 Word 工具 / Lyrics Word Tool</title>
+  <meta name="description" content="搜尋歌詞並自動生成排版精美的 Word 文檔，支援 A4 即時預覽。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<!-- ── Top Bar ─────────────────────────────────────────────────── -->
+<header class="topbar">
+  <div class="topbar-brand">
+    <span class="brand-icon">🎵</span>
+    <span class="brand-name" data-i18n="brandName">歌詞 Word 工具</span>
+  </div>
+  <div class="topbar-sub" data-i18n="brandSub">自動排版 · A4 即時預覽 · 一鍵生成</div>
+  <div class="topbar-spacer"></div>
+  <button class="help-toggle" onclick="showTutorial()" title="使用說明 / Help">❓</button>
+  <button id="langToggle" class="lang-toggle" onclick="toggleLang()" title="Switch language / 切換語言">EN</button>
+</header>
+
+<!-- ── Mobile Tab Bar (hidden on desktop) ──────────────────── -->
+<nav class="mobile-tab-bar" id="mobileTabBar">
+  <button class="tab-item active" onclick="switchMobileTab('search')" id="tabSearch">
+    <span class="tab-icon">🔍</span>
+    <span class="tab-label" data-i18n="tabSearch">搜尋</span>
+  </button>
+  <button class="tab-item" onclick="switchMobileTab('preview')" id="tabPreview">
+    <span class="tab-icon">📄</span>
+    <span class="tab-label" data-i18n="tabPreview">預覽</span>
+  </button>
+  <button class="tab-item" onclick="switchMobileTab('settings')" id="tabSettings">
+    <span class="tab-icon">⚙️</span>
+    <span class="tab-label" data-i18n="tabSettings">設定</span>
+  </button>
+</nav>
+
+<!-- ── Main Layout ────────────────────────────────────────────── -->
+<main class="layout">
+
+  <!-- LEFT: Search + Custom + Results -->
+  <aside class="panel panel-search" data-tab="search">
+
+    <!-- Mode toggle -->
+    <div class="mode-toggle">
+      <button id="modeSearchBtn" class="mode-btn active" onclick="switchMode('search')" data-i18n="modeSearch">🔍 搜尋</button>
+      <button id="modeCustomBtn" class="mode-btn" onclick="switchMode('custom')" data-i18n="modeCustom">✏️ 自訂</button>
+    </div>
+
+    <!-- Search mode -->
+    <div id="searchMode">
+      <section class="search-section">
+        <label class="panel-label" data-i18n="searchLabel">🔍 搜尋歌曲</label>
+        <div class="search-row">
+          <input id="searchInput" type="text" class="search-input"
+                 data-i18n-attr="placeholder" data-i18n-key="searchPlaceholder"
+                 placeholder="歌名 / 歌手名…" autocomplete="off">
+          <button id="searchBtn" class="btn btn-accent" onclick="doSearch()" data-i18n="searchBtn">搜尋</button>
+        </div>
+      </section>
+
+      <section class="results-section">
+        <label class="panel-label" data-i18n="resultsLabel">搜尋結果</label>
+        <ul id="resultsList" class="results-list">
+          <li class="results-empty" data-i18n="resultsEmpty">請輸入關鍵字開始搜尋</li>
+        </ul>
+      </section>
+
+      <section class="history-section">
+        <div class="history-header" onclick="toggleHistory()">
+          <label class="panel-label" data-i18n="historyLabel">📋 歷史記錄</label>
+          <span id="historyToggleIcon" class="history-toggle-icon">▼</span>
+        </div>
+        <div id="historyPanel" class="history-panel" style="display:none">
+          <ul id="historyList" class="history-list"></ul>
+        </div>
+      </section>
+    </div>
+
+    <!-- Custom mode -->
+    <div id="customMode" style="display:none">
+      <section class="custom-section">
+        <label class="panel-label" data-i18n="customTitleLabel">🎵 歌曲資訊</label>
+        <input id="customTitle" type="text" class="search-input custom-input"
+               data-i18n-attr="placeholder" data-i18n-key="customTitlePlaceholder"
+               placeholder="歌名（必填）" autocomplete="off">
+        <input id="customArtist" type="text" class="search-input custom-input"
+               data-i18n-attr="placeholder" data-i18n-key="customArtistPlaceholder"
+               placeholder="歌手（選填）" autocomplete="off">
+      </section>
+      <section class="custom-lyrics-section">
+        <label class="panel-label" data-i18n="customLyricsLabel">📝 歌詞內容</label>
+        <div id="pasteHint" class="paste-hint" style="display:none" data-i18n="pasteHint">從上方 Genius 連結複製歌詞，然後貼到下方</div>
+        <textarea id="customLyrics" class="custom-lyrics-textarea"
+                  data-i18n-attr="placeholder" data-i18n-key="customLyricsPlaceholder"
+                  placeholder="在此貼上或輸入歌詞…"></textarea>
+        <button class="btn btn-accent full-width mt-6" onclick="loadCustomLyrics()" data-i18n="customLoadBtn">📄 載入歌詞</button>
+      </section>
+    </div>
+
+    <section class="lyrics-preview-section">
+      <label class="panel-label" data-i18n="lyricsPreviewLabel">歌詞預覽</label>
+      <div id="lyricsPreviewText" class="lyrics-text-preview" data-i18n="lyricsNotLoaded">（尚未載入）</div>
+    </section>
+  </aside>
+
+  <!-- CENTER: A4 Page Preview -->
+  <section class="panel panel-preview" data-tab="preview">
+    <div class="preview-header">
+      <label class="panel-label" data-i18n="previewLabel">📄 A4 版面預覽</label>
+      <span id="previewStatus" class="preview-status" data-i18n="previewInitStatus">請先搜尋並載入歌詞</span>
+    </div>
+
+    <div class="a4-wrapper" id="a4Wrapper">
+      <div class="a4-page" id="a4Page">
+        <div class="a4-placeholder">
+          <div class="placeholder-icon">🎵</div>
+          <div class="placeholder-text" data-i18n="placeholderText">載入歌詞後<br>版面預覽將顯示在這裡</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="pageIndicator" class="page-indicator" style="display:none">
+      <button class="page-btn" id="prevPageBtn" onclick="changePage(-1)" data-i18n="prevPage">‹</button>
+      <span id="pageLabel" data-i18n="pageLabel">第 1 頁 / 共 1 頁</span>
+      <button class="page-btn" id="nextPageBtn" onclick="changePage(1)" data-i18n="nextPage">›</button>
+    </div>
+    <button class="btn btn-accent full-width btn-generate mobile-preview-dl"
+            onclick="doGenerate()" disabled id="generateBtnPreview" data-i18n="generateBtn">
+      ⬇  生成並下載 Word 檔
+    </button>
+  </section>
+
+  <!-- RIGHT: Controls + Generate -->
+  <aside class="panel panel-controls" data-tab="settings">
+
+    <section class="control-section">
+      <label class="panel-label" data-i18n="songInfoLabel">🎤 已載入歌曲</label>
+      <div id="songInfo" class="song-info-box" data-i18n="songInfoEmpty">（尚未選擇）</div>
+      <div id="layoutInfo" class="layout-info"></div>
+    </section>
+
+    <div class="divider"></div>
+
+    <section class="control-section">
+      <label class="panel-label" data-i18n="fontLabel">🔤 字體大小</label>
+
+      <div class="ctrl-row">
+        <span class="ctrl-label" data-i18n="titleFontLabel">標題</span>
+        <div class="stepper">
+          <button class="step-btn" onclick="stepFont('title', -1)">▼</button>
+          <input id="titlePtDisplay" class="step-val-input" type="number"
+                 value="22.0" step="1" min="8" max="36"
+                 onchange="setFontDirect('title', this.value)">
+          <button class="step-btn" onclick="stepFont('title', +1)">▲</button>
+          <span class="step-unit">pt</span>
+        </div>
+      </div>
+
+      <div class="ctrl-row">
+        <span class="ctrl-label" data-i18n="bodyFontLabel">歌詞</span>
+        <div class="stepper">
+          <button class="step-btn" onclick="stepFont('body', -0.5)">▼</button>
+          <input id="bodyPtDisplay" class="step-val-input" type="number"
+                 value="12.0" step="0.5" min="8" max="16"
+                 onchange="setFontDirect('body', this.value)">
+          <button class="step-btn" onclick="stepFont('body', +0.5)">▲</button>
+          <span class="step-unit">pt</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <section class="control-section">
+      <label class="panel-label" data-i18n="layoutLabel">📐 版面配置</label>
+      <button id="colToggleBtn" class="btn btn-secondary full-width"
+              onclick="toggleCols()" data-i18n="singleColToggle">單欄  （點擊切換雙欄）</button>
+      <button class="btn btn-outline full-width mt-6"
+              onclick="autoLayout()" data-i18n="autoLayout">↺  自動計算最佳版面</button>
+      <button id="sectionTagBtn" class="btn btn-accent full-width mt-6"
+              onclick="toggleSectionTags()" data-i18n="sectionTagHide">🏷️ 隱藏段落標記 [Verse] ✔</button>
+    </section>
+
+    <div class="divider"></div>
+
+    <section class="control-section">
+      <label class="panel-label" data-i18n="pinyinLabel">📖 拼音 / 注音</label>
+      <button id="pinyinToggleBtn" class="btn btn-secondary full-width"
+              onclick="togglePinyin()" data-i18n="pinyinOff">關閉</button>
+      <div id="pinyinLangRow" class="ctrl-row mt-6" style="display:none">
+        <span class="ctrl-label" data-i18n="pinyinLangLabel">語言</span>
+        <select id="pinyinLangSelect" class="pinyin-select" onchange="onPinyinLangChange()">
+          <option value="cantonese" data-i18n="pinyinLangCant">粵語 (Jyutping)</option>
+          <option value="mandarin"  data-i18n="pinyinLangMand">國語 (Pinyin)</option>
+          <option value="japanese"  data-i18n="pinyinLangJpn">日本語 (Romaji)</option>
+          <option value="korean"    data-i18n="pinyinLangKor">한국어 (Korean)</option>
+        </select>
+      </div>
+      <button id="pinyinSwapBtn" class="btn btn-outline full-width mt-6" style="display:none"
+              onclick="togglePinyinSwap()" data-i18n="pinyinSwapOff">🔄 拼音↑ 原文↓</button>
+    </section>
+
+    <div class="divider"></div>
+
+    <section class="control-section">
+      <label class="panel-label" data-i18n="statsLabel">📊 版面資訊</label>
+      <div class="stats-grid">
+        <div class="stat">
+          <span class="stat-label" data-i18n="statLines">歌詞行數</span>
+          <span id="statLines" class="stat-val">—</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label" data-i18n="statPages">預計頁數</span>
+          <span id="statPages" class="stat-val">—</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label" data-i18n="statFill">頁面利用率</span>
+          <span id="statFill" class="stat-val">—</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <section class="control-section">
+      <button id="generateBtn" class="btn btn-accent full-width btn-generate"
+              onclick="doGenerate()" disabled data-i18n="generateBtn">
+        ⬇  生成並下載 Word 檔
+      </button>
+      <div id="generateStatus" class="generate-status"></div>
+    </section>
+
+  </aside>
+</main>
+
+<!-- ── Tutorial Modal ──────────────────────────────────────── -->
+<div id="tutorialOverlay" class="tutorial-overlay" style="display:none" onclick="closeTutorial(event)">
+  <div class="tutorial-card" onclick="event.stopPropagation()">
+    <button class="tutorial-close" onclick="closeTutorial()">&times;</button>
+    <h2 class="tutorial-title" data-i18n="tutorialTitle">📖 使用說明</h2>
+    <div class="tutorial-steps">
+      <div class="tutorial-step">
+        <span class="tutorial-step-num">1</span>
+        <div class="tutorial-step-body">
+          <div class="tutorial-step-title" data-i18n="tutorialStep1Title">🔍 搜尋歌曲</div>
+          <div class="tutorial-step-desc" data-i18n="tutorialStep1Desc">輸入歌名或歌手名，找到你要的歌</div>
+        </div>
+      </div>
+      <div class="tutorial-step">
+        <span class="tutorial-step-num">2</span>
+        <div class="tutorial-step-body">
+          <div class="tutorial-step-title" data-i18n="tutorialStep2Title">🔗 複製歌詞</div>
+          <div class="tutorial-step-desc" data-i18n="tutorialStep2Desc">點擊搜尋結果或 🔗 按鈕，前往 Genius 網站複製歌詞</div>
+        </div>
+      </div>
+      <div class="tutorial-step">
+        <span class="tutorial-step-num">3</span>
+        <div class="tutorial-step-body">
+          <div class="tutorial-step-title" data-i18n="tutorialStep3Title">📝 貼上歌詞</div>
+          <div class="tutorial-step-desc" data-i18n="tutorialStep3Desc">把歌詞貼到「自訂模式」的文字框，按「載入歌詞」</div>
+        </div>
+      </div>
+      <div class="tutorial-step">
+        <span class="tutorial-step-num">4</span>
+        <div class="tutorial-step-body">
+          <div class="tutorial-step-title" data-i18n="tutorialStep4Title">⬇️ 生成 Word</div>
+          <div class="tutorial-step-desc" data-i18n="tutorialStep4Desc">調整版面和拼音設定，一鍵下載排版精美的 Word 文檔！</div>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-accent full-width mt-6" onclick="closeTutorial()" data-i18n="tutorialClose">👍 了解了！</button>
+  </div>
+</div>
+
+<!-- ── Loading Overlay ───────────────────────────────────────── -->
+<div id="loadingOverlay" class="loading-overlay" style="display:none">
+  <div class="loading-card">
+    <div class="spinner"></div>
+    <div id="loadingMsg" class="loading-msg">處理中…</div>
+  </div>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
