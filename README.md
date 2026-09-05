@@ -34,7 +34,7 @@
 
 ```bash
 # Clone the repo
-git clone https://github.com/YOUR_USERNAME/lyrics-word-tool.git
+git clone https://github.com/RInsuCJ/lyrics-word-tool-openversion
 cd lyrics-word-tool
 
 # Install dependencies
@@ -44,7 +44,7 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Open **http://localhost:5050** and start searching!
+Open **(https://lyrics-word-tool-openversion.onrender.com/)** and start searching!
 
 ## 📸 How It Works
 
